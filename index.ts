@@ -1,13 +1,8 @@
-// index.ts
-console.log("API starting...");
+import app from "./app/api/app";
 
-import http from "http";
+Bun.serve({
+  fetch: app.fetch,
+  port: 3000,
+})
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("ok");
-});
-
-server.listen(3000, () => {
-  console.log("API listening on http://localhost:3000");
-});
+console.log("Server is running on http://localhost:3000");
