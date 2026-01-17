@@ -6,10 +6,13 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "dev" : "bun run index.ts",
-    "worker" : "bun run worker.ts"
+    "dev": "bun run index.ts",
+    "worker": "bun run worker.ts"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "zod": "^4.3.5"
   }
 }
