@@ -11,8 +11,8 @@
 
 
 ### ⬜ 0. Before Anythin
-- [ ] Make a function to get the ip from the headers
-- [ ] Pass the ip as `meta` when adding job to BullMQ in the API
+- [x] Make a function to get the ip from the headers
+- [x] Pass the ip as `meta` when adding job to BullMQ in the API
 
 ### ⬜ 1. Create Worker Process
 

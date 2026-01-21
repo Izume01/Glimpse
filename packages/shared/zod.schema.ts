@@ -28,3 +28,6 @@ export const EventSchema = z.object({
         })
         .optional()
 })
+
+
+export type EventType = z.infer<typeof EventSchema>

@@ -1,6 +1,8 @@
 import { EventSchema } from "../../../packages/shared/zod.schema";
 import type { Context } from "hono";
 import { addEventToQueue } from "../services/event.service";
+import type { ExtendedAnalyticsEvent } from "../../../packages/shared/event.schema";
+import getIP from "../../../packages/shared/lib/getIp";
 
 // Parse the incomming req 
 // - if valid, add to queue
@@ -14,6 +16,8 @@ export const IngestionEventController = async (c: Context) => {
         return c.json({ error: "Invalid JSON" }, 400);
     }
 
+    const ip = getIP(c);
+    
     const parseEventResult = EventSchema.safeParse(body)
 
     if (!parseEventResult.success) {
@@ -34,7 +38,15 @@ export const IngestionEventController = async (c: Context) => {
 
     const validEvent = parseEventResult.data
 
-    await addEventToQueue(validEvent)
+    const eventWithMetadata: ExtendedAnalyticsEvent = {
+        ...validEvent,
+        meta: {
+            ip,
+            userAgent: c.req.header('User-Agent') || 'unknown',
+        }
+    }
+
+    await addEventToQueue(eventWithMetadata)
 
     return c.json({ status: 'accepted' }, 200)
 }

@@ -3,7 +3,9 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    command: bun run index.ts
+    command: bun --watch --poll run index.ts
+    volumes:
+      - ..:/repo
     ports:
       - "3000:3000"
     depends_on:
@@ -17,7 +19,9 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    command: bun run workers.ts
+    command: bun --watch --poll run workers.ts
+    volumes:
+      - ..:/repo
     depends_on:
       - postgres
       - redis

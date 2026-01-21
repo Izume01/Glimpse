@@ -20,3 +20,10 @@ export interface AnalyticsEvent {
     referrer?: string;
   };
 }
+
+export type ExtendedAnalyticsEvent = AnalyticsEvent & {
+  meta: {
+    ip: string;
+    userAgent: string;
+  };
+};
