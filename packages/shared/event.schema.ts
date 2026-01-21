@@ -23,7 +23,7 @@ export interface AnalyticsEvent {
 
 export type ExtendedAnalyticsEvent = AnalyticsEvent & {
   meta: {
-    ip: string;
+    ip?: string;
     userAgent: string;
   };
 };

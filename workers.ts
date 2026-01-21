@@ -1,6 +1,15 @@
-// // worker.ts
-// console.log("Worker started");
+import eventWorker from "./app/workers/eventWorker";
 
-// setInterval(() => {
-//   console.log("Worker heartbeat");
-// }, 5000);
+console.log("Event workers started");
+
+process.on("SIGINT", async () => {
+    console.log("Shutting down worker...");
+    await eventWorker.close();
+    process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+    console.log("Shutting down worker...");
+    await eventWorker.close();
+    process.exit(0);
+});

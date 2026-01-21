@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "bun --watch run index.ts",
-    "worker": "bun run worker.ts"
+    "worker": "bun --watch run workers.ts"
   },
   "peerDependencies": {
     "typescript": "^5"

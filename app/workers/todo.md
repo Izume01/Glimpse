@@ -18,10 +18,10 @@
 
 **File:** `apps/worker/index.ts`
 
-- [ ] Create BullMQ Worker
-- [ ] Connect to same Redis as API
-- [ ] Listen to `"ingest-event"`
-- [ ] For now: `console.log(event)`
+- [x] Create BullMQ Worker
+- [x] Connect to same Redis as API
+- [x] Listen to `"ingest-event"`
+- [x] For now: `console.log(event)`
 
 > **Goal:** see events printed when you hit `/events`
 
