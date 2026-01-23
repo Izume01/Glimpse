@@ -3,9 +3,12 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+      args:
+        - GEOLITE_LICENSE_KEY=${GEOLITE_LICENSE_KEY}
     command: bun --watch --poll run index.ts
     volumes:
       - ..:/repo
+      - /repo/node_modules
     ports:
       - "3000:3000"
     depends_on:
@@ -19,9 +22,12 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+      args:
+        - GEOLITE_LICENSE_KEY=${GEOLITE_LICENSE_KEY}
     command: bun --watch --poll run workers.ts
     volumes:
       - ..:/repo
+      - /repo/node_modules
     depends_on:
       - postgres
       - redis
