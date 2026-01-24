@@ -1,7 +1,10 @@
 
-# Glimpse
+# 🌍 Glimpse
 
+Real-time user analytics with live mapping and event visualization.
 
+> **We track sessions, not people.**  
+> **We visualize traffic, not identities.**
 
 Glimpse helps you see what users are doing on your website or app right now. It shows you a live map with all active users and lets you watch what each person is doing as it happens. This helps you understand your users and react quickly.
 
