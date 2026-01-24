@@ -1,4 +1,7 @@
-#!/bin/bash
+# How to run 
+
+# chmod +x test/fire_event.sh
+# ./test/fire_event.sh
 
 ENDPOINT="http://localhost:3000/event"
 
@@ -72,4 +75,4 @@ curl -s -X POST $ENDPOINT \
   }' &
 
 wait
-echo "✅ All events fired"
+echo "All events fired"
