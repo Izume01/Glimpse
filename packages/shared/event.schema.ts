@@ -27,3 +27,4 @@ export type ExtendedAnalyticsEvent = AnalyticsEvent & {
     userAgent: string;
   };
 };
+

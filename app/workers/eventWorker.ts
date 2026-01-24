@@ -1,37 +1,45 @@
 import { Worker } from "bullmq";
-import { uuid } from "zod";
 import geoLookupIp from "./lib/geolookupIp";
+import { redis } from "../../packages/shared/lib/redis";
+import type { GeoResult } from "./lib/geolookupIp";
+import type { AnalyticsEvent } from "../../packages/shared/event.schema";
+import crypto from 'bun'
+
+interface BufferData {
+    event: AnalyticsEvent;
+    geo: GeoResult;
+}
 
 const redisPort = process.env.REDIS_PORT
     ? Number(process.env.REDIS_PORT)
     : 6379;
 
+const eventBuffer : BufferData[] = [];
+const MAX_BUFFER_SIZE = 100;
+const BUFFER_FLUSH_INTERVAL = 5000; 
+
 const eventWorker = new Worker(
     "eventQueue",
     async job => {
-        switch(job.name) {
+        switch (job.name) {
             case "ingest-event":
                 const eventData = job.data;
 
                 if (!eventData.sessionId) {
-                    eventData.sessionId = uuid();
+                    eventData.sessionId = crypto.randomUUIDv7();
                 }
-                console.log(eventData);
-                console.log(`EVENT NAME : ${eventData.event}`);
-                console.log(`SESSION ID : ${eventData.sessionId}`);
 
                 // We will be doing  the Database part here 
                 // TODO: store in DB, analytics pipeline, etc
 
                 // --------------------------------------------
-                
-                // Now here we will be doing Extract IP , Geolookup and then storing it in the redis with a set ttl
 
+                // Now here we will be doing Extract IP , Geolookup and then storing it in the redis with a set ttl
+                let geoData: GeoResult = null;
                 const ipAddress = eventData.meta?.ip;
                 if (ipAddress) {
                     try {
-                        const geoData = await geoLookupIp(ipAddress);
-                        console.log(`Geolocation data for IP ${ipAddress}:`, geoData);
+                        geoData = await geoLookupIp(ipAddress);
                     } catch (error) {
                         console.error(`Failed to lookup geolocation for IP ${ipAddress}:`, error);
                     }
@@ -39,8 +47,40 @@ const eventWorker = new Worker(
                     console.warn("No IP address provided in event data");
                 }
 
+                // session store 
+                const sessionKey = `session:${eventData.projectId}:${eventData.sessionId}`;
 
+                await redis.hset(sessionKey, {
+                    country: geoData?.country ?? "unknown",
+                    region: geoData?.region ?? "unknown",
+                    city: geoData?.city ?? "unknown",
+                    timezone: geoData?.timezone ?? "unknown",
+                    lat: geoData?.lat ? geoData.lat.toString() : "0",
+                    lon: geoData?.lon ? geoData.lon.toString() : "0",
+                    lastEventTimestamp: String(eventData.timestamp ?? Date.now()),
+
+                })
+
+                await redis.expire(sessionKey, 300);
+
+                // active sessions
+                const activeSessionsKey = `active_sessions:${eventData.projectId}`;
+                await redis.sadd(activeSessionsKey, eventData.sessionId);
+                await redis.expire(activeSessionsKey, 300);
+
+
+                eventBuffer.push({
+                    event: eventData,
+                    geo: geoData,
+                })
+
+                // active user
+                const activeUser = await redis.scard(activeSessionsKey);
                 
+                console.log(
+                    `[LIVE] project=${eventData.projectId} activeUsers=${activeUser}`
+                );
+
                 break;
             default:
                 console.warn(`No processor defined for job name: ${job.name}`);
