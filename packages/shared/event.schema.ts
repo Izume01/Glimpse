@@ -2,7 +2,7 @@ export interface AnalyticsEvent {
   projectId: string;
 
   event: string;
-  timestamp: number; 
+  timestamp: number;
 
   userId?: string;
   sessionId?: string;
@@ -15,9 +15,29 @@ export interface AnalyticsEvent {
   properties?: Record<string, unknown>;
 
   context?: {
-    userAgent?: string;
     url?: string;
     referrer?: string;
+    path?: string;
+    title?: string;
+    previousPath?: string;
+
+    viewport?: string;
+    screen?: {
+      width?: number;
+      height?: number;
+      colorDepth?: number;
+    };
+
+    userAgent?: string;
+    timezone?: string;
+    language?: string;
+
+    connection?: {
+      effectiveType?: string;
+      saveData?: boolean;
+    };
+
+    [key: string]: unknown;
   };
 }
 
