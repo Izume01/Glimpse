@@ -39,15 +39,15 @@ If `sessionId` is missing:
 
 ### ⬜ 3. Extract IP (From Queue Meta)
 
-- [ ] Read `meta.ip`
-- [ ] Do NOT store raw IP anywhere
-- [ ] Pass IP only to geo lookup
+- [x] Read `meta.ip`
+- [x] Do NOT store raw IP anywhere
+- [x] Pass IP only to geo lookup
 
 ### ⬜ 4. Geo Lookup (Worker Only)
 
-- [ ] Install `geoip-lite` or maxmind
-- [ ] Convert IP → `{ country, city, lat, lon }`
-- [ ] If lookup fails → ignore (don't crash)
+- [x] Install `geoip-lite` or maxmind
+- [x] Convert IP → `{ country, city, lat, lon }`
+- [x] If lookup fails → ignore (don't crash)
 
 ### ⬜ 5. Update Redis Session State
 

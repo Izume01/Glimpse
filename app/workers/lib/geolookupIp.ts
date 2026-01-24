@@ -52,4 +52,3 @@ const geoLookupIp = (ipAddress: string): GeoResult => {
 
 export default geoLookupIp;
 
-console.log(geoLookupIp("95.217.12.89"));

@@ -1,5 +1,6 @@
 import { Worker } from "bullmq";
 import { uuid } from "zod";
+import geoLookupIp from "./lib/geolookupIp";
 
 const redisPort = process.env.REDIS_PORT
     ? Number(process.env.REDIS_PORT)
@@ -15,9 +16,9 @@ const eventWorker = new Worker(
                 if (!eventData.sessionId) {
                     eventData.sessionId = uuid();
                 }
-                
+                console.log(eventData);
                 console.log(`EVENT NAME : ${eventData.event}`);
-                console.log(`EVENT NAME : ${eventData.sessionId}`);
+                console.log(`SESSION ID : ${eventData.sessionId}`);
 
                 // We will be doing  the Database part here 
                 // TODO: store in DB, analytics pipeline, etc
@@ -25,6 +26,20 @@ const eventWorker = new Worker(
                 // --------------------------------------------
                 
                 // Now here we will be doing Extract IP , Geolookup and then storing it in the redis with a set ttl
+
+                const ipAddress = eventData.meta?.ip;
+                if (ipAddress) {
+                    try {
+                        const geoData = await geoLookupIp(ipAddress);
+                        console.log(`Geolocation data for IP ${ipAddress}:`, geoData);
+                    } catch (error) {
+                        console.error(`Failed to lookup geolocation for IP ${ipAddress}:`, error);
+                    }
+                } else {
+                    console.warn("No IP address provided in event data");
+                }
+
+
                 
                 break;
             default:
