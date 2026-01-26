@@ -1,5 +1,10 @@
+// Track previous path within the session
+let prevPath = sessionStorage.getItem('analytics_prev_path') || undefined;
+
 export function createEvent(projectId, sessionId, name, properties) {
-    return {
+    const currentPath = location.pathname + location.search + location.hash;
+
+    const evt = {
         projectId,
         event: name,
         timestamp: Date.now(),
@@ -8,7 +13,7 @@ export function createEvent(projectId, sessionId, name, properties) {
         context: {
             url: window.location.href,
             referrer: document.referrer || undefined,
-            path: location.pathname + location.search + location.hash,
+            path: currentPath,
             title: document.title || undefined,
             previousPath: prevPath,
 
@@ -28,6 +33,11 @@ export function createEvent(projectId, sessionId, name, properties) {
                 saveData: navigator.connection.saveData,
             },  
         }
-    }
+    };
+
+    prevPath = currentPath;
+    sessionStorage.setItem('analytics_prev_path', currentPath);
+
+    return evt;
 }
 
