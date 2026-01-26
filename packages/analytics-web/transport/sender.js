@@ -9,36 +9,46 @@ let flushTimer = null
 let isFlushing = false;
 
 function send(events) { 
-    const payload = JSON.stringify({ events });
-    let attempts = 0;
-
-    function attemptSend() {
-        attempts++;
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(ENDPOINT, payload);
-        } else {
-            // fallback to fetch
-            fetch(ENDPOINT , {
-                method : 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                body: payload,
-                keepalive: true
-            }).catch((err) => {
-                if (attempts < MAX_RETRIES) {
-                    attemptSend();
-                } else {
-                    console.error('Failed to send analytics events:', err);
-                }
-            });
+    events.map(event => {
+        const payload = JSON.stringify({ event });
+        let attempts = 0;
+    
+        function attemptSend() {
+            attempts++;
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(ENDPOINT, payload);
+            } else {
+                // fallback to fetch
+                fetch(ENDPOINT , {
+                    method : 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                    keepalive: true
+                }).catch((err) => {
+                    if (attempts < MAX_RETRIES) {
+                        attemptSend();
+                    } else {
+                        console.error('Failed to send analytics events:', err);
+                    }
+                });
+            }
         }
-    }
-    attemptSend();
+        attemptSend();
+    })
 }
 
 function flushBuffer() {
-    if (eventBuffer.length > 0) {
+    if(eventBuffer.length > 0 ) {
         send(eventBuffer);
         eventBuffer = [];
     }
 }
-// \DSBFKJBDSKJFBAS JBFKSAJBF  U  HATE THISHA 
+
+function enqueueEvent(event) {
+    if(eventBuffer.length >= BUFFER_SIZE) {
+        console.log('Flushing buffer');
+        flushBuffer();
+    }
+    eventBuffer.push(event);
+}
+
