@@ -98,7 +98,8 @@ This is the recommended method for local development as it sets up all services 
 	```
 
 5. **Access the application:**
-	- Open [http://localhost:3000](http://localhost:3000) in your browser
+	- API: [http://localhost:3000](http://localhost:3000)
+	- Frontend: You'll need to run the web application separately (see Option 2, section 3C)
 
 ---
 
@@ -117,7 +118,7 @@ cd Glimpse
 bun install
 
 # Update GeoIP database with your MaxMind license key
-cd node_modules/geoip-lite && npm run-script updatedb license_key=YOUR_MAXMIND_LICENSE_KEY
+cd node_modules/geoip-lite && npm run updatedb license_key=YOUR_MAXMIND_LICENSE_KEY
 cd ../..
 ```
 
@@ -183,22 +184,24 @@ bun run build
 bun run start
 ```
 
-The web app will be available at `http://localhost:3000` (Next.js default)
+The web app will be available at `http://localhost:3001` (or another available port if 3000 is already in use by the API)
 
 ### 4. Running All Services Together
 
 For development, you can run services in separate terminals:
 
 ```sh
-# Terminal 1: API Service
+# Terminal 1: API Service (runs on port 3000)
 bun run dev
 
 # Terminal 2: Worker Service
 bun run worker
 
-# Terminal 3: Web Application
-cd app/web && bun run dev
+# Terminal 3: Web Application (runs on port 3001 to avoid port conflict)
+cd app/web && PORT=3001 bun run dev
 ```
+
+> **Note:** The API runs on port 3000, so the web application uses port 3001 to avoid conflicts.
 
 ---
 
@@ -210,7 +213,7 @@ After installation, update the GeoIP database for accurate IP geolocation:
 
 ```sh
 cd node_modules/geoip-lite
-npm run-script updatedb license_key=YOUR_MAXMIND_LICENSE_KEY
+npm run updatedb license_key=YOUR_MAXMIND_LICENSE_KEY
 cd ../..
 ```
 
