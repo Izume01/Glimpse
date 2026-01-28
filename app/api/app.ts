@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import eventRouter from "./routes/event.route";
-import getIP from "../../packages/shared/lib/getIp";
+import getIP from "@glimpse/shared/lib/getIp";
 
 const app = new Hono();
 

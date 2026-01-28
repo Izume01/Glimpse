@@ -7,6 +7,11 @@
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "@glimpse/db/*": ["packages/db/*"],
+      "@glimpse/shared/*": ["packages/shared/*"]
+    },
 
     // Bundler mode
     "moduleResolution": "bundler",

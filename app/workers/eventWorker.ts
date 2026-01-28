@@ -1,8 +1,8 @@
 import { Worker } from "bullmq";
 import geoLookupIp from "./lib/geolookupIp";
-import { redis } from "../../packages/shared/lib/redis";
 import type { GeoResult } from "./lib/geolookupIp";
-import type { AnalyticsEvent } from "../../packages/shared/event.schema";
+import { redis } from "@glimpse/db/redis";
+import type {AnalyticsEvent} from "@glimpse/shared/event.schema"
 import crypto from 'bun'
 
 interface BufferData {

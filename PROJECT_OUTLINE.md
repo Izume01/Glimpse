@@ -389,4 +389,4 @@ Root:
 
 Frontend:
 
-"schema": "../../packages/db/prisma/schema.prisma"
+"schema": "../../packages/db/prisma/schema.prisma"You’re doing it the right way.

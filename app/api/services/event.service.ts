@@ -1,6 +1,5 @@
 import { Queue } from 'bullmq';
-import type { AnalyticsEvent } from '../../../packages/shared/event.schema';
-
+import type { AnalyticsEvent } from "@glimpse/shared/event.schema";
 const redisPort = process.env.REDIS_PORT
   ? Number(process.env.REDIS_PORT)
   : 6379;

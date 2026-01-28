@@ -1,0 +1,13 @@
+{
+    "name": "@glimpse/db",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": {
+            "import": "./client.ts"
+        },
+        "./redis": {
+            "import": "./redis.ts"
+        }
+    }
+}

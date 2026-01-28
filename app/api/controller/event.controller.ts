@@ -1,8 +1,8 @@
-import { EventSchema } from "../../../packages/shared/zod.schema";
+import {EventSchema} from "@glimpse/shared/zod.schema"
 import type { Context } from "hono";
 import { addEventToQueue } from "../services/event.service";
-import type { ExtendedAnalyticsEvent } from "../../../packages/shared/event.schema";
-import getIP from "../../../packages/shared/lib/getIp";
+import type { ExtendedAnalyticsEvent } from "@glimpse/shared/event.schema";
+import getIP from "@glimpse/shared/lib/getIp";
 
 // Parse the incomming req 
 // - if valid, add to queue
