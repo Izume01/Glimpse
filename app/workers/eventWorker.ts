@@ -3,6 +3,7 @@ import geoLookupIp from "./lib/geolookupIp";
 import type { GeoResult } from "./lib/geolookupIp";
 import { redis } from "@glimpse/db/redis";
 import type {AnalyticsEvent} from "@glimpse/shared/event.schema"
+import { prisma } from "@glimpse/db/client";
 import crypto from 'bun'
 
 interface BufferData {
@@ -18,6 +19,51 @@ const eventBuffer : BufferData[] = [];
 const MAX_BUFFER_SIZE = 100;
 const BUFFER_FLUSH_INTERVAL = 5000; 
 
+let isFlushing = false;
+
+async function flushEventBuffer() {
+    if (isFlushing) return;
+    if (eventBuffer.length === 0) return;
+
+    isFlushing = true;
+    try {
+        const batch = eventBuffer.splice(0, MAX_BUFFER_SIZE);
+
+        await prisma.event.createMany({
+            data: batch.map(({ event, geo }) => ({
+                projectId: event.projectId,
+                name: event.event,
+                occurredAt: new Date(event.timestamp ?? Date.now()),
+
+                userId: event.userId,
+                sessionId: event.sessionId,
+
+                traits: event.traits ?? undefined,
+                properties: event.properties ?? undefined,
+                context: event.context ?? undefined,
+
+                ip: (event as any).meta?.ip ?? undefined,
+                userAgent: (event as any).meta?.userAgent ?? undefined,
+
+                country: geo?.country ?? undefined,
+                region: geo?.region ?? undefined,
+                city: geo?.city ?? undefined,
+                timezone: geo?.timezone ?? undefined,
+                lat: geo?.lat ?? undefined,
+                lon: geo?.lon ?? undefined,
+            })),
+        });
+    } catch (error) {
+        console.error("Failed to flush event buffer to DB:", error);
+    } finally {
+        isFlushing = false;
+    }
+}
+
+setInterval(() => {
+    void flushEventBuffer();
+}, BUFFER_FLUSH_INTERVAL);
+
 const eventWorker = new Worker(
     "eventQueue",
     async job => {
@@ -29,12 +75,6 @@ const eventWorker = new Worker(
                     eventData.sessionId = crypto.randomUUIDv7();
                 }
 
-                // We will be doing  the Database part here 
-                // TODO: store in DB, analytics pipeline, etc
-
-                // --------------------------------------------
-
-                // Now here we will be doing Extract IP , Geolookup and then storing it in the redis with a set ttl
                 let geoData: GeoResult = null;
                 const ipAddress = eventData.meta?.ip;
                 if (ipAddress) {
@@ -73,6 +113,10 @@ const eventWorker = new Worker(
                     event: eventData,
                     geo: geoData,
                 })
+
+                if (eventBuffer.length >= MAX_BUFFER_SIZE) {
+                    await flushEventBuffer();
+                }
 
                 // active user
                 const activeUser = await redis.scard(activeSessionsKey);
