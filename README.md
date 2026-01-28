@@ -24,27 +24,211 @@ Glimpse is made for anyone who wants to know what’s happening on their site in
 
 
 
-## Setup Guide (Docker)
+## Installation Guide
 
-To run Glimpse locally using Docker:
+### Prerequisites
+
+Before you begin, ensure you have the following installed:
+- [Bun](https://bun.sh/) v1.3.6 or higher
+- [PostgreSQL](https://www.postgresql.org/) 16 or higher
+- [Redis](https://redis.io/) 7 or higher
+- [Docker](https://www.docker.com/) and Docker Compose (for Docker installation)
+- [MaxMind GeoLite2 License Key](https://www.maxmind.com/en/geolite2/signup) (free account)
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Database Configuration
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/app"
+
+# Redis Configuration
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+
+# MaxMind GeoLite2 License Key (for IP geolocation)
+GEOLITE_LICENSE_KEY="your_maxmind_license_key_here"
+```
+
+> **Note:** Get your free MaxMind license key from [MaxMind's website](https://www.maxmind.com/en/geolite2/signup)
+
+---
+
+## Option 1: Docker Installation (Local Development)
+
+This is the recommended method for local development as it sets up all services automatically.
+
+### Steps:
 
 1. **Clone the repository:**
 	```sh
-	git clone https://github.com/your-org/glimpse.git
-	cd glimpse
+	git clone https://github.com/Izume01/Glimpse.git
+	cd Glimpse
 	```
-2. **Go to the Docker folder:**
+
+2. **Create environment file:**
 	```sh
+	# Create .env file in the docker directory
 	cd docker
+	cat > .env << EOF
+	GEOLITE_LICENSE_KEY=your_maxmind_license_key_here
+	DATABASE_URL=postgresql://postgres:postgres@postgres:5432/app
+	REDIS_HOST=redis
+	REDIS_PORT=6379
+	EOF
 	```
-3. **Configure environment variables:**
-	- Copy `.env` to `.env.local` (if needed) and update all required values, especially any credentials or IDs (e.g., `MAXMIND_ACCOUNT_ID`, etc.).
-4. **Build and start the containers:**
+
+3. **Build and start all services:**
 	```sh
 	docker-compose build
 	docker-compose up
 	```
-5. **Open [http://localhost:3000](http://localhost:3000) in your browser.**
+	
+	This will start:
+	- API server on port 3000
+	- Worker service for background jobs
+	- PostgreSQL database on port 5432
+	- Redis on port 6378 (mapped from 6379)
+
+4. **Run Prisma migrations:**
+	```sh
+	# In a new terminal
+	docker-compose exec api bun run prisma:migrate
+	```
+
+5. **Access the application:**
+	- API: [http://localhost:3000](http://localhost:3000)
+	- Frontend: You'll need to run the web application separately (see Option 2, section 3C)
+
+---
+
+## Option 2: Standalone Services Installation
+
+For production or when you want to run services separately.
+
+### 1. Clone and Install Dependencies
+
+```sh
+# Clone the repository
+git clone https://github.com/Izume01/Glimpse.git
+cd Glimpse
+
+# Install dependencies with Bun
+bun install
+
+# Update GeoIP database with your MaxMind license key
+cd node_modules/geoip-lite && npm run updatedb license_key=YOUR_MAXMIND_LICENSE_KEY
+cd ../..
+```
+
+> **Important:** After running `bun install`, you must update the GeoIP database with your MaxMind license key for IP geolocation to work properly.
+
+### 2. Setup Prisma
+
+```sh
+# Generate Prisma Client
+bun run prisma:generate
+
+# Run database migrations
+bun run prisma:migrate
+
+# (Optional) Open Prisma Studio to view your database
+bun run prisma:studio
+```
+
+### 3. Running Services Individually
+
+#### A. API Service
+
+The API service handles all HTTP requests and WebSocket connections.
+
+```sh
+# Development mode with hot reload
+bun run dev
+
+# Or directly run
+bun --watch run index.ts
+```
+
+The API will be available at `http://localhost:3000`
+
+#### B. Worker Service
+
+The worker service processes background jobs and events.
+
+```sh
+# Development mode with hot reload
+bun run worker
+
+# Or directly run
+bun --watch run workers.ts
+```
+
+#### C. Frontend/Web Application
+
+The web application is a Next.js app located in `app/web/`.
+
+```sh
+# Navigate to web directory
+cd app/web
+
+# Install dependencies (if not already done)
+bun install
+
+# Development mode
+bun run dev
+
+# Production build
+bun run build
+bun run start
+```
+
+The web app will be available at `http://localhost:3001` (or another available port if 3000 is already in use by the API)
+
+### 4. Running All Services Together
+
+For development, you can run services in separate terminals:
+
+```sh
+# Terminal 1: API Service (runs on port 3000)
+bun run dev
+
+# Terminal 2: Worker Service
+bun run worker
+
+# Terminal 3: Web Application (runs on port 3001 to avoid port conflict)
+cd app/web && PORT=3001 bun run dev
+```
+
+> **Note:** The API runs on port 3000, so the web application uses port 3001 to avoid conflicts.
+
+---
+
+## Post-Installation Steps
+
+### Update GeoIP Database
+
+After installation, update the GeoIP database for accurate IP geolocation:
+
+```sh
+cd node_modules/geoip-lite
+npm run updatedb license_key=YOUR_MAXMIND_LICENSE_KEY
+cd ../..
+```
+
+This should be done:
+- After initial installation
+- Periodically to keep geolocation data up to date (monthly recommended)
+
+### Verify Installation
+
+1. Check that PostgreSQL is running and accessible
+2. Check that Redis is running and accessible
+3. Verify API is responding: `curl http://localhost:3000`
+4. Open the web interface and check the live map
+
+---
 
 ## Update Guide
 
