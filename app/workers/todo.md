@@ -7,3 +7,12 @@
 
 ## Frontend
 - [ ] Create a frontend
+
+## Client Library
+- []  Rate limiting (prevents abuse) [1000 events / minute / siteId]
+- [] Backend:
+
+if (!validSite(siteId)) reject();
+- []  Validate events against a schema interface for visualizing the collected events in real-time.
+- [] Implement filtering and sorting options to help users analyze the data effectively.
+- [] Design a user-friendly interface that displays key metrics and insights derived from the event data.
