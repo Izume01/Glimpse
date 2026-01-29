@@ -2,7 +2,7 @@ import { Worker } from "bullmq";
 import geoLookupIp from "./lib/geolookupIp";
 import type { GeoResult } from "./lib/geolookupIp";
 import { redis } from "@glimpse/db/redis";
-import type {AnalyticsEvent} from "@glimpse/shared/event.schema"
+import type { AnalyticsEvent } from "@glimpse/shared/event.schema"
 import { prisma } from "@glimpse/db/client";
 import crypto from 'bun'
 
@@ -15,9 +15,9 @@ const redisPort = process.env.REDIS_PORT
     ? Number(process.env.REDIS_PORT)
     : 6379;
 
-const eventBuffer : BufferData[] = [];
+const eventBuffer: BufferData[] = [];
 const MAX_BUFFER_SIZE = 100;
-const BUFFER_FLUSH_INTERVAL = 5000; 
+const BUFFER_FLUSH_INTERVAL = 1000;
 
 let isFlushing = false;
 
@@ -25,6 +25,7 @@ async function flushEventBuffer() {
     if (isFlushing) return;
     if (eventBuffer.length === 0) return;
 
+    console.log("Flushing event buffer", eventBuffer.length);
     isFlushing = true;
     try {
         const batch = eventBuffer.splice(0, MAX_BUFFER_SIZE);
@@ -87,10 +88,11 @@ const eventWorker = new Worker(
                     console.warn("No IP address provided in event data");
                 }
 
-                // session store 
                 const sessionKey = `session:${eventData.projectId}:${eventData.sessionId}`;
 
-                await redis.hset(sessionKey, {
+                const pipeline = redis.pipeline();
+
+                pipeline.hset(sessionKey, {
                     country: geoData?.country ?? "unknown",
                     region: geoData?.region ?? "unknown",
                     city: geoData?.city ?? "unknown",
@@ -98,32 +100,39 @@ const eventWorker = new Worker(
                     lat: geoData?.lat ? geoData.lat.toString() : "0",
                     lon: geoData?.lon ? geoData.lon.toString() : "0",
                     lastEventTimestamp: String(eventData.timestamp ?? Date.now()),
+                });
 
-                })
+                pipeline.expire(sessionKey, 300);
 
-                await redis.expire(sessionKey, 300);
-
-                // active sessions
                 const activeSessionsKey = `active_sessions:${eventData.projectId}`;
-                await redis.sadd(activeSessionsKey, eventData.sessionId);
-                await redis.expire(activeSessionsKey, 300);
+                pipeline.sadd(activeSessionsKey, eventData.sessionId);
+                pipeline.expire(activeSessionsKey, 300);
+
+                await pipeline.exec();
+
 
 
                 eventBuffer.push({
                     event: eventData,
                     geo: geoData,
-                })
+                });
+
+                console.log("Event buffer length", eventBuffer.length);
 
                 if (eventBuffer.length >= MAX_BUFFER_SIZE) {
                     await flushEventBuffer();
                 }
 
-                // active user
-                const activeUser = await redis.scard(activeSessionsKey);
-                
-                console.log(
-                    `[LIVE] project=${eventData.projectId} activeUsers=${activeUser}`
-                );
+                const activeUserInterval = setInterval(() => {
+                    void redis.scard(activeSessionsKey).then(activeUser => {
+                        console.log(
+                            `[LIVE] project=${eventData.projectId} activeUsers=${activeUser}`
+                        )
+                    });
+                }, 5000);
+                setTimeout(() => {
+                    clearInterval(activeUserInterval);
+                }, 5000);
 
                 break;
             default:
@@ -131,6 +140,7 @@ const eventWorker = new Worker(
         }
     },
     {
+        concurrency: 10,
         connection: {
             host: process.env.REDIS_HOST ?? "redis",
             port: redisPort,

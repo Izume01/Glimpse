@@ -8,7 +8,6 @@ services:
     command: bun --watch --poll run index.ts
     volumes:
       - ..:/repo
-      - /repo/node_modules
     ports:
       - "3000:3000"
     depends_on:
@@ -17,6 +16,8 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      PRISMA_CLIENT_ENGINE_TYPE: library
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/app
 
   worker:
     build:
@@ -27,13 +28,14 @@ services:
     command: bun --watch --poll run workers.ts
     volumes:
       - ..:/repo
-      - /repo/node_modules
     depends_on:
       - postgres
       - redis
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      PRISMA_CLIENT_ENGINE_TYPE: library
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/app
 
   postgres:
     image: postgres:16
