@@ -11,8 +11,8 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "bun --watch run index.ts",
-    "worker": "bun --watch run workers.ts",
+    "dev": "bun --preload ./sentry.ts --watch index.ts",
+    "worker": "bun --preload ./sentry.ts --watch workers.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
@@ -24,6 +24,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
+    "@sentry/bun": "^10.38.0",
     "@types/geoip-lite": "^1.4.4",
     "@types/node": "^25.0.10",
     "@types/pg": "^8.16.0",

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import eventRouter from "./routes/event.route";
 import getIP from "@glimpse/shared/lib/getIp";
+import * as Sentry from "@sentry/bun";
 
 const app = new Hono();
 
@@ -18,6 +19,10 @@ app.get("/check", (c) => {
     return c.json({ status: "ok" });
 })
 
+app.get("/debug-sentry", (c) => {
+    throw new Error("Test Sentry error!");
+});
+
 app.route("/event", eventRouter);
 
 app.get("/", (c) => {
@@ -29,6 +34,5 @@ app.get("/", (c) => {
     headers,
   });
 });
-
 
 export default app;

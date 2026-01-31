@@ -1,4 +1,5 @@
 import app from "./app/api/app";
+import "./instrument.ts"
 
 Bun.serve({
   fetch: app.fetch,
