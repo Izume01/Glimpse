@@ -5,6 +5,7 @@ WORKDIR /repo
 ARG GEOLITE_LICENSE_KEY
 # Dummy URL for prisma generate (doesn't connect, just needs provider info)
 ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/app
+ENV PRISMA_ENGINES_MIRROR=https://binaries.prisma.sh
 
 COPY package.json ./
 COPY bun.lock ./
@@ -19,5 +20,5 @@ RUN bun install && \
       echo "No GeoLite key provided, skipping update"; \
     fi
 
-RUN bunx prisma generate
+RUN bun run prisma generate
 CMD ["bun", "--watch", "--poll", "run", "index.ts"]

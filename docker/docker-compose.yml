@@ -18,6 +18,8 @@ services:
       REDIS_PORT: 6379
       PRISMA_CLIENT_ENGINE_TYPE: library
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/app
+      SENTRY_DNS: ${SENTRY_DNS}
+      SENTRY_ENABLED: true
 
   worker:
     build:
@@ -36,6 +38,29 @@ services:
       REDIS_PORT: 6379
       PRISMA_CLIENT_ENGINE_TYPE: library
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/app
+      SENTRY_DNS: ${SENTRY_DNS}
+      SENTRY_ENABLED: true
+
+  analytics-worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        - GEOLITE_LICENSE_KEY=${GEOLITE_LICENSE_KEY}
+    command: bun --watch --poll run app/analytics-worker/analyticsWorker.ts
+    volumes:
+      - ..:/repo
+    depends_on:
+      - worker
+      - postgres
+      - redis
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PRISMA_CLIENT_ENGINE_TYPE: library
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/app
+      SENTRY_DNS: ${SENTRY_DNS}
+      SENTRY_ENABLED: true
 
   postgres:
     image: postgres:16
@@ -53,5 +78,3 @@ services:
     ports:
       - "6378:6379"
 
-volumes:
-  pg_data:

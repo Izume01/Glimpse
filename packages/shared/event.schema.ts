@@ -4,8 +4,9 @@ export interface AnalyticsEvent {
   event: string;
   timestamp: number;
 
+  anonymousId: string;
   userId?: string;
-  sessionId?: string;
+  sessionId: string;
 
   traits?: {
     email?: string;

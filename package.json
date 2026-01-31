@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "bun --preload ./sentry.ts --watch index.ts",
     "worker": "bun --preload ./sentry.ts --watch workers.ts",
+    "analytics-worker": "bun --preload ./sentry.ts --watch app/analytics-worker/analyticsWorker.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",

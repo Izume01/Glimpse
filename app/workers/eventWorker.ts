@@ -1,4 +1,5 @@
 import { Worker } from "bullmq";
+import { Queue } from "bullmq";
 import geoLookupIp from "./lib/geolookupIp";
 import type { GeoResult } from "./lib/geolookupIp";
 import { redis } from "@glimpse/db/redis";
@@ -21,6 +22,13 @@ const BUFFER_FLUSH_INTERVAL = 1000;
 
 let isFlushing = false;
 
+const analyticsQueue = new Queue("analyticsQueue", {
+    connection: {
+        host: process.env.REDIS_HOST ?? "redis",
+        port: redisPort,
+    }
+});
+
 async function flushEventBuffer() {
     if (isFlushing) return;
     if (eventBuffer.length === 0) return;
@@ -36,6 +44,7 @@ async function flushEventBuffer() {
                 name: event.event,
                 occurredAt: new Date(event.timestamp ?? Date.now()),
 
+                anonymousId: event.anonymousId,
                 userId: event.userId,
                 sessionId: event.sessionId,
 
@@ -73,7 +82,11 @@ const eventWorker = new Worker(
                 const eventData = job.data;
 
                 if (!eventData.sessionId) {
-                    eventData.sessionId = crypto.randomUUIDv7();
+                    eventData.sessionId = `sess_${crypto.randomUUIDv7()}`;
+                }
+
+                if (!eventData.anonymousId) {
+                    eventData.anonymousId = `anon_${crypto.randomUUIDv7()}`;
                 }
 
                 let geoData: GeoResult = null;
@@ -110,31 +123,31 @@ const eventWorker = new Worker(
 
                 await pipeline.exec();
 
-
-
                 eventBuffer.push({
                     event: eventData,
                     geo: geoData,
                 });
 
-                console.log("Event buffer length", eventBuffer.length);
+                await analyticsQueue.add("analytics-job", {
+                    eventData,
+                    geoData
+                });
+
 
                 if (eventBuffer.length >= MAX_BUFFER_SIZE) {
                     await flushEventBuffer();
                 }
 
-                const activeUserInterval = setInterval(() => {
-                    void redis.scard(activeSessionsKey).then(activeUser => {
-                        console.log(
-                            `[LIVE] project=${eventData.projectId} activeUsers=${activeUser}`
-                        )
-                    });
-                }, 5000);
-                setTimeout(() => {
-                    clearInterval(activeUserInterval);
-                }, 5000);
-
+                // const activeUserInterval = setInterval(() => {
+                //     void redis.scard(activeSessionsKey).then(activeUser => {
+                //         console.log(
+                //             `[LIVE] project=${eventData.projectId} activeUsers=${activeUser}`
+                //         )
+                //     });
+                // }, 5000);
+                
                 break;
+
             default:
                 console.warn(`No processor defined for job name: ${job.name}`);
         }

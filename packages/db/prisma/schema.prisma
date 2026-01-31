@@ -1,14 +1,12 @@
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-
-model user{
+model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   name      String?
@@ -17,30 +15,105 @@ model user{
 }
 
 model Event {
-  id         String   @id @default(uuid())
-  projectId  String
-  name       String
-  occurredAt DateTime
-  receivedAt DateTime @default(now())
+  id           BigInt   @id @default(autoincrement())
 
-  userId    String?
-  sessionId String?
+  projectId    String
+  name         String
+  occurredAt   DateTime
+  receivedAt   DateTime @default(now())
 
-  traits     Json?
-  properties Json?
-  context    Json?
+  anonymousId  String
+  userId       String?
+  sessionId    String
 
-  ip        String?
-  userAgent String?
+  traits       Json?
+  properties   Json?
+  context      Json?
 
-  country  String?
-  region   String?
-  city     String?
-  timezone String?
-  lat      Float?
-  lon      Float?
+  ip           String?
+  userAgent    String?
 
+  country      String?
+  region       String?
+  city         String?
+  timezone     String?
+  lat          Float?
+  lon          Float?
+
+  @@map("events")
   @@index([projectId, occurredAt])
   @@index([projectId, sessionId])
-  @@map("event")
+  @@index([projectId, anonymousId])
+  @@index([projectId, userId])
+}
+
+model AnalyticsSession {
+  projectId    String
+  sessionId    String
+
+  anonymousId  String
+  userId       String?
+
+  startedAt    DateTime
+  lastSeenAt   DateTime
+  eventCount   Int
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("analytics_sessions")
+  @@id([projectId, sessionId])
+  @@index([projectId, startedAt])
+  @@index([projectId, anonymousId])
+}
+
+
+model DailyEventAggregate {
+  projectId String
+  date      DateTime
+  eventName String
+
+  count     Int
+  users     Int
+  sessions  Int
+
+  @@map("daily_event_aggregates")
+  @@id([projectId, date, eventName])
+}
+
+
+
+model DailyPageAnalytics {
+  projectId String
+  date      DateTime
+  pagePath  String
+
+  views        Int
+  uniqueUsers Int
+  sessions     Int
+  bounces      Int
+
+  @@map("daily_page_analytics")
+  @@id([projectId, date, pagePath])
+}
+
+
+model DailyUserAnalytics {
+  projectId   String
+  date        DateTime
+  anonymousId String
+
+  sessions    Int
+  isNew       Boolean
+
+  @@map("daily_user_analytics")
+  @@id([projectId, date, anonymousId])
+}
+
+
+
+model AnalyticsCheckpoint {
+  name        String  @id
+  lastEventId BigInt
+  updatedAt   DateTime @updatedAt
 }
