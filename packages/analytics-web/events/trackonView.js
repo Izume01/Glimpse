@@ -1,5 +1,15 @@
+import { track } from "./track.js";
+
 const customViewedElements = new WeakSet();
 
+/**
+ * Track when elements become visible in the viewport
+ * @param {string|Element} selector - CSS selector or element
+ * @param {string} eventName - Event name to track
+ * @param {object} properties - Additional properties
+ * @param {object} options - { threshold: 0.5, once: true }
+ * @returns {function} - Cleanup function to stop observing
+ */
 function trackOnView(selector, eventName, properties = {}, options = {}) {
     const threshold = options.threshold ?? 0.5;
     const once = options.once ?? true;
@@ -10,7 +20,7 @@ function trackOnView(selector, eventName, properties = {}, options = {}) {
 
     if (elements.length === 0) {
         console.warn(`GlimpseTracker: No elements found for selector "${selector}"`);
-        return;
+        return () => {};
     }
 
     const observer = new IntersectionObserver((entries) => {

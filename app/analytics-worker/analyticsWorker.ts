@@ -1,6 +1,16 @@
 import { Worker, Queue } from "bullmq";
-import { redis } from "@glimpse/db/redis";
 import { prisma } from "@glimpse/db/client";
+
+
+/**
+ * What to precompute for analytics:
+ * 
+ * AnalyticsSession
+ * DailyEventAggregate
+ * DailyPageAnalytics
+ * DailyUserAnalytics
+ * AnalyticsCheckpoint
+ */
 
 const redisPort = process.env.REDIS_PORT
     ? Number(process.env.REDIS_PORT)
@@ -23,7 +33,18 @@ const analyticsWorker = new Worker(
         switch (job.name) {
             case "analytics-job":
                 const { data } = job;
-                // Process the analytics data                
+
+                // AnalyticsSession computation
+
+                const analyticsSession = {
+                    projectId: data.projectId,
+                    sessionId: data.sessionId,
+                    
+                    
+                    createdAt : new Date(),
+                    updatedAt : new Date(), 
+                }
+
                 break;
             default:
                 console.warn(`Unknown job type: ${job.name}`);
