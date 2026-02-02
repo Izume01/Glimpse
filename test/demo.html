@@ -5,139 +5,213 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Glimpse Tracker Demo</title>
   <style>
-    body { font-family: sans-serif; margin: 2rem; line-height: 1.5; max-width: 900px; }
-    button { margin-right: 0.5rem; margin-bottom: 0.5rem; padding: 0.5rem 0.75rem; cursor: pointer; }
-    code { background: #f3f3f3; padding: 0.15rem 0.25rem; border-radius: 3px; }
-    section { margin-bottom: 2rem; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; }
-    h3 { margin-top: 0; color: #333; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
-    .status { background: #e8f5e9; padding: 0.75rem; border-radius: 4px; font-family: monospace; }
-    a { color: #1976d2; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 2rem; line-height: 1.6; max-width: 900px; margin: 0 auto; color: #333; }
+    h1 { color: #1a1a2e; }
+    button { margin-right: 0.5rem; margin-bottom: 0.5rem; padding: 0.6rem 1rem; cursor: pointer; background: #4361ee; color: white; border: none; border-radius: 6px; font-size: 0.9rem; transition: background 0.2s; }
+    button:hover { background: #3a0ca3; }
+    button.secondary { background: #6c757d; }
+    button.secondary:hover { background: #5a6268; }
+    button.danger { background: #dc3545; }
+    button.danger:hover { background: #c82333; }
+    code { background: #f1f3f4; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.85em; }
+    section { margin-bottom: 2rem; padding: 1.5rem; border: 1px solid #e0e0e0; border-radius: 12px; background: #fafafa; }
+    h3 { margin-top: 0; color: #1a1a2e; border-bottom: 2px solid #4361ee; padding-bottom: 0.5rem; display: inline-block; }
+    .status { background: #d4edda; padding: 1rem; border-radius: 8px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.9rem; border-left: 4px solid #28a745; }
+    a { color: #4361ee; }
     form { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    input { padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
-    .note { font-size: 0.85rem; color: #666; margin-top: 0.5rem; }
-    .scroll-area { height: 200vh; background: linear-gradient(to bottom, #fff, #f0f0f0); padding: 1rem; margin-top: 1rem; }
+    input { padding: 0.6rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; }
+    .note { font-size: 0.85rem; color: #6c757d; margin-top: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; }
+    .scroll-area { height: 200vh; background: linear-gradient(180deg, #fff 0%, #f0f4f8 100%); padding: 1rem; margin-top: 1rem; border-radius: 8px; }
+    .tracked-section { padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .metric { background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .metric-value { font-size: 1.5rem; font-weight: bold; color: #4361ee; }
+    .metric-label { font-size: 0.8rem; color: #6c757d; }
+    video { max-width: 100%; border-radius: 8px; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
-  <h1>🔍 Glimpse Tracker Demo</h1>
+  <h1>🔍 Glimpse Analytics Demo</h1>
   <p>
-    Loads the client script with <code>data-project-id</code> and sends sample events to
-    <code>http://localhost:3000/event</code>.
+    SDK v2.0 with identity tracking, Web Vitals, engagement metrics, and more.
+    Events are sent to <code>http://localhost:3000/event</code>.
   </p>
 
   <section>
     <h3>📊 Status</h3>
-    <div id="status" class="status">Waiting for tracker...</div>
+    <div id="status" class="status">Initializing tracker...</div>
+    <div class="grid" id="metrics">
+      <div class="metric">
+        <div class="metric-value" id="m-session">-</div>
+        <div class="metric-label">Session ID</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="m-anon">-</div>
+        <div class="metric-label">Anonymous ID</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="m-user">-</div>
+        <div class="metric-label">User ID</div>
+      </div>
+    </div>
   </section>
 
-  <!-- AUTO-TRACKED: Page View, Session Start (fires on load) -->
-
+  <!-- IDENTITY TRACKING -->
   <section>
-    <h3>🖱️ Custom Events (Manual Tracking)</h3>
-    <p>These use <code>tracker.track(eventName, properties)</code> directly:</p>
+    <h3>👤 Identity Tracking</h3>
+    <p>Track users across sessions with persistent IDs:</p>
+    <form id="identify-form" onsubmit="return false;">
+      <input type="text" id="user-id" placeholder="User ID (e.g. user_123)" />
+      <input type="text" id="user-email" placeholder="Email (trait)" />
+      <button type="submit" id="btn-identify">Identify User</button>
+    </form>
+    <div style="margin-top: 1rem;">
+      <button class="secondary" id="btn-traits">Add Traits</button>
+      <button class="danger" id="btn-reset">Reset Identity</button>
+    </div>
+    <p class="note">→ <code>identify(userId, traits)</code> links anonymous activity to a user</p>
+  </section>
+
+  <!-- CUSTOM EVENTS -->
+  <section>
+    <h3>🖱️ Custom Events</h3>
+    <p>Track custom events with <code>track(name, properties)</code>:</p>
     <button id="btn-cta">Track CTA Click</button>
     <button id="btn-purchase">Track Purchase</button>
     <button id="btn-signup">Track Sign Up</button>
-    <button id="btn-custom">Track Custom Event</button>
+    <button id="btn-custom">Track Custom</button>
     <p class="note">→ Fires custom events with your own properties</p>
   </section>
 
+  <!-- BUTTON TRACKING -->
   <section>
-    <h3>🔘 Button Click Tracking (data-track attribute)</h3>
-    <p>Buttons with <code>data-track</code> attribute are auto-tracked:</p>
+    <h3>🔘 Auto Button Tracking</h3>
+    <p>Buttons with <code>data-track</code> are auto-tracked:</p>
     <button data-track data-track-name="Primary Action">Primary Action</button>
     <button data-track data-track-name="Secondary Action">Secondary Action</button>
-    <button data-track>Unnamed Tracked Button</button>
-    <p class="note">→ Auto-tracks via <code>data-track</code> attribute</p>
+    <button data-track>Unnamed Button</button>
+    <p class="note">→ Add <code>data-track</code> attribute to any button</p>
   </section>
 
+  <!-- FORM TRACKING -->
   <section>
-    <h3>📝 Form Submission Tracking</h3>
-    <p>Form submissions are auto-tracked:</p>
+    <h3>📝 Form Tracking</h3>
+    <p>Form submissions and field focus are auto-tracked:</p>
     <form id="demo-form" action="#submitted">
-      <input type="text" name="email" placeholder="Enter email" />
-      <button type="submit">Submit Form</button>
+      <input type="text" name="name" placeholder="Your name" />
+      <input type="email" name="email" placeholder="Email" />
+      <button type="submit">Submit</button>
     </form>
-    <p class="note">→ Auto-tracks form submissions with action URL</p>
+    <p class="note">→ Tracks form submissions, field focus (without PII)</p>
   </section>
 
+  <!-- LINK TRACKING -->
   <section>
-    <h3>🔗 Outbound Link Tracking</h3>
-    <p>External link clicks are auto-tracked:</p>
+    <h3>🔗 Link & Download Tracking</h3>
+    <p>External links and file downloads are auto-tracked:</p>
     <a href="https://github.com" target="_blank">GitHub (External)</a> |
     <a href="https://google.com" target="_blank">Google (External)</a> |
-    <a href="#internal">Internal Link (Not Tracked)</a>
-    <p class="note">→ Auto-tracks clicks on links to different domains</p>
-  </section>
-
-  <section>
-    <h3>📥 File Download Tracking</h3>
-    <p>Downloads of common file types are auto-tracked:</p>
     <a href="/files/sample.pdf">Download PDF</a> |
-    <a href="/files/report.xlsx">Download Excel</a> |
-    <a href="/files/archive.zip">Download ZIP</a>
-    <p class="note">→ Auto-tracks: pdf, doc, docx, xls, xlsx, ppt, pptx, zip, rar, 7z, exe, dmg</p>
+    <a href="/files/report.xlsx">Download Excel</a>
+    <p class="note">→ Auto-tracks outbound clicks and file downloads</p>
   </section>
 
+  <!-- ERROR TRACKING -->
   <section>
     <h3>⚠️ Error Tracking</h3>
-    <p>JavaScript errors and unhandled promises are auto-tracked:</p>
-    <button id="btn-error">Trigger JS Error</button>
-    <button id="btn-promise-error">Trigger Promise Rejection</button>
-    <p class="note">→ Auto-tracks window errors and unhandled promise rejections</p>
+    <p>JavaScript errors and promise rejections:</p>
+    <button class="danger" id="btn-error">Trigger JS Error</button>
+    <button class="danger" id="btn-promise-error">Trigger Promise Rejection</button>
+    <p class="note">→ Auto-captures errors with stack traces</p>
   </section>
 
+  <!-- PERFORMANCE -->
   <section>
-    <h3>👁️ Visibility Tracking</h3>
-    <p>Page visibility changes are auto-tracked. Try switching tabs!</p>
-    <p class="note">→ Auto-tracks "Page Hidden" and "Page Visible" events</p>
+    <h3>⚡ Performance & Web Vitals</h3>
+    <p>Automatically tracks page load performance:</p>
+    <ul>
+      <li><strong>Page Load</strong> - DNS, TTFB, DOM ready, load complete</li>
+      <li><strong>LCP</strong> - Largest Contentful Paint</li>
+      <li><strong>FCP</strong> - First Contentful Paint</li>
+      <li><strong>FID</strong> - First Input Delay</li>
+      <li><strong>CLS</strong> - Cumulative Layout Shift</li>
+      <li><strong>TTFB</strong> - Time to First Byte</li>
+    </ul>
+    <p class="note">→ Web Vitals tracked automatically with good/needs-improvement/poor ratings</p>
   </section>
 
+  <!-- ENGAGEMENT -->
   <section>
-    <h3>📜 Scroll Depth Tracking</h3>
-    <p>Scroll down to see depth tracking in action:</p>
-    <p class="note">→ Auto-tracks at milestones: 10%, 25%, 50%, 75%, 90%, 100%</p>
+    <h3>📈 Engagement Tracking</h3>
+    <p>Measures user engagement and interaction quality:</p>
+    <ul>
+      <li><strong>Active Time</strong> - Time user is actually engaged</li>
+      <li><strong>Scroll Depth</strong> - Maximum scroll position reached</li>
+      <li><strong>Interactions</strong> - Clicks, keypresses, touches</li>
+      <li><strong>Bounce Detection</strong> - Left without engaging</li>
+      <li><strong>Rage Clicks</strong> - Frustration indicator</li>
+      <li><strong>Page Exit</strong> - Comprehensive exit data</li>
+    </ul>
+    <p class="note">→ Tracks 30-second heartbeats for long sessions</p>
+  </section>
+
+  <!-- MEDIA TRACKING -->
+  <section>
+    <h3>🎬 Media Tracking</h3>
+    <p>Track video/audio engagement with <code>data-track</code>:</p>
+    <video data-track="demo-video" controls width="400" poster="https://via.placeholder.com/400x225?text=Demo+Video">
+      <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+    </video>
+    <p class="note">→ Tracks play, pause, progress milestones (25/50/75%), complete</p>
+  </section>
+
+  <!-- SCROLL TRACKING -->
+  <section>
+    <h3>📜 Scroll & Visibility Tracking</h3>
+    <p>Scroll down to see element visibility tracking:</p>
+    <p class="note">→ Tracks scroll milestones: 25%, 50%, 75%, 90%, 100%</p>
   </section>
 
   <div class="scroll-area">
-    <p>Keep scrolling to trigger scroll depth events...</p>
+    <p>Keep scrolling to trigger visibility events...</p>
     
-    <div data-track-view="pricing-section" data-track-name="Pricing Section" style="margin-top: 20vh; padding: 2rem; background: #e3f2fd; border-radius: 8px;">
+    <div data-track-view="pricing-section" data-track-name="Pricing Section" class="tracked-section" style="margin-top: 20vh; background: #e3f2fd;">
       <h4>💰 Pricing Section (Auto)</h4>
-      <p>This section is tracked via <code>data-track-view</code> attribute</p>
+      <p>Tracked via <code>data-track-view</code></p>
     </div>
 
-    <div id="custom-section-1" style="margin-top: 20vh; padding: 2rem; background: #fce4ec; border-radius: 8px;">
-      <h4>🎯 Custom Tracked Section</h4>
-      <p>This is tracked via <code>tracker.trackOnView('#custom-section-1', 'Viewed Testimonials')</code></p>
+    <div id="custom-section-1" class="tracked-section" style="margin-top: 20vh; background: #fce4ec;">
+      <h4>🎯 Testimonials Section</h4>
+      <p>Tracked via <code>trackOnView('#custom-section-1', 'Viewed Testimonials')</code></p>
     </div>
 
-    <div data-track-view="features-section" data-track-name="Features Section" style="margin-top: 20vh; padding: 2rem; background: #fff3e0; border-radius: 8px;">
+    <div data-track-view="features-section" data-track-name="Features Section" class="tracked-section" style="margin-top: 20vh; background: #fff3e0;">
       <h4>✨ Features Section (Auto)</h4>
-      <p>This section is tracked via <code>data-track-view</code> attribute</p>
+      <p>Tracked via <code>data-track-view</code></p>
     </div>
 
-    <div id="custom-section-2" style="margin-top: 20vh; padding: 2rem; background: #f3e5f5; border-radius: 8px;">
+    <div id="custom-section-2" class="tracked-section" style="margin-top: 20vh; background: #f3e5f5;">
       <h4>📦 Product Demo Section</h4>
-      <p>This is tracked with custom properties via <code>trackOnView</code></p>
+      <p>Tracked with 75% visibility threshold</p>
     </div>
 
-    <div data-track-view="cta-section" data-track-name="Call to Action" style="margin-top: 20vh; padding: 2rem; background: #e8f5e9; border-radius: 8px;">
-      <h4>🚀 Call to Action (Auto)</h4>
-      <p>Track when users scroll to your CTA!</p>
+    <div data-track-view="cta-section" data-track-name="Call to Action" class="tracked-section" style="margin-top: 20vh; background: #e8f5e9;">
+      <h4>🚀 Final CTA</h4>
+      <p>You've reached the bottom!</p>
     </div>
 
-    <p style="margin-top: 10vh;">🎉 100% scroll depth!</p>
+    <p style="margin-top: 10vh; text-align: center; font-size: 1.5rem;">🎉 100% scroll depth!</p>
   </div>
 
   <section>
-    <h3>🚪 Session End Tracking</h3>
-    <p>Closing or navigating away from this page triggers "Session End".</p>
-    <p class="note">→ Auto-tracks via beforeunload event</p>
+    <h3>🚪 Session End</h3>
+    <p>Closing or navigating away tracks "Session End" with full engagement data.</p>
+    <p class="note">→ Uses <code>sendBeacon</code> for reliable delivery on unload</p>
   </section>
 
-  <!-- Load the client script -->
-  <script type="module" src="https://cdn.jsdelivr.net/npm/analytics-web-glimpse-tracker@1.0.1/dist/index.js" data-project-id="demo_project"></script>
+  <!-- Load Glimpse Analytics -->
+  <script type="module" src="../packages/analytics-web/index.js" data-project-id="demo_project"></script>
 
   <script type="module">
     function setStatus(msg) {
@@ -145,72 +219,102 @@
       if (el) el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    function updateMetrics() {
       const tracker = window.GlimpseTracker;
-      if (!tracker || !tracker.projectId) {
-        setStatus('❌ Tracker not initialized (missing projectId?)');
-        return;
+      if (!tracker) return;
+      
+      document.getElementById('m-session').textContent = tracker.getSessionId?.()?.slice(-8) || '-';
+      document.getElementById('m-anon').textContent = tracker.getAnonymousId?.()?.slice(-8) || '-';
+      document.getElementById('m-user').textContent = tracker.getUserId?.() || '(none)';
+    }
+
+    // Wait for tracker to initialize
+    const checkTracker = setInterval(() => {
+      const tracker = window.GlimpseTracker;
+      if (tracker?.projectId) {
+        clearInterval(checkTracker);
+        initDemo();
       }
+    }, 100);
 
-      setStatus(`✅ Tracker ready for projectId="${tracker.projectId}"`);
+    function initDemo() {
+      const tracker = window.GlimpseTracker;
+      
+      setStatus(`✅ Tracker v${tracker.version || '2.0'} ready | Project: ${tracker.projectId}`);
+      updateMetrics();
 
-      // Custom event buttons
+      // Identity tracking
+      document.getElementById('btn-identify')?.addEventListener('click', () => {
+        const userId = document.getElementById('user-id').value || 'user_' + Date.now();
+        const email = document.getElementById('user-email').value;
+        tracker.identify(userId, email ? { email, plan: 'pro' } : {});
+        setStatus(`Identified as: ${userId}`);
+        updateMetrics();
+      });
+
+      document.getElementById('btn-traits')?.addEventListener('click', () => {
+        tracker.setTraits({ lastSeen: new Date().toISOString(), visits: 5 });
+        setStatus('Added traits: lastSeen, visits');
+      });
+
+      document.getElementById('btn-reset')?.addEventListener('click', () => {
+        tracker.reset();
+        setStatus('Identity reset');
+        updateMetrics();
+      });
+
+      // Custom events
       document.getElementById('btn-cta')?.addEventListener('click', () => {
-        tracker.track('cta_clicked', { label: 'demo_cta', position: 'header' });
-        setStatus('Sent: cta_clicked');
+        tracker.track('CTA Clicked', { label: 'demo_cta', position: 'header' });
+        setStatus('Tracked: CTA Clicked');
       });
 
       document.getElementById('btn-purchase')?.addEventListener('click', () => {
-        tracker.track('purchase', { amount: 42, currency: 'USD', item: 'Pro Plan' });
-        setStatus('Sent: purchase');
+        tracker.track('Purchase', { amount: 99.99, currency: 'USD', plan: 'Pro Annual' });
+        setStatus('Tracked: Purchase $99.99');
       });
 
       document.getElementById('btn-signup')?.addEventListener('click', () => {
-        tracker.track('sign_up', { method: 'email', plan: 'free' });
-        setStatus('Sent: sign_up');
+        tracker.track('Sign Up', { method: 'email', source: 'demo' });
+        setStatus('Tracked: Sign Up');
       });
 
       document.getElementById('btn-custom')?.addEventListener('click', () => {
-        tracker.track('custom_event', { 
+        tracker.track('Custom Event', { 
           foo: 'bar', 
-          count: 123, 
-          nested: { key: 'value' },
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          nested: { key: 'value' }
         });
-        setStatus('Sent: custom_event');
+        setStatus('Tracked: Custom Event');
       });
 
-      // Error trigger buttons
+      // Error triggers
       document.getElementById('btn-error')?.addEventListener('click', () => {
         setStatus('Triggering JS error...');
-        setTimeout(() => {
-          throw new Error('Intentional test error from demo');
-        }, 100);
+        setTimeout(() => { throw new Error('Intentional test error'); }, 100);
       });
 
       document.getElementById('btn-promise-error')?.addEventListener('click', () => {
         setStatus('Triggering promise rejection...');
-        Promise.reject(new Error('Intentional promise rejection from demo'));
+        Promise.reject(new Error('Intentional promise rejection'));
       });
 
-      // Form submission feedback
+      // Form
       document.getElementById('demo-form')?.addEventListener('submit', (e) => {
         e.preventDefault();
-        setStatus('Sent: Form Submitted (auto-tracked)');
+        setStatus('Form submitted (auto-tracked)');
       });
 
-      // Custom element view tracking using trackOnView API
-      tracker.trackOnView('#custom-section-1', 'Viewed Testimonials', {
-        section: 'testimonials',
-        page: 'demo'
+      // Custom view tracking
+      tracker.trackOnView?.('#custom-section-1', 'Viewed Testimonials', {
+        section: 'testimonials'
       });
 
-      tracker.trackOnView('#custom-section-2', 'Viewed Product Demo', {
+      tracker.trackOnView?.('#custom-section-2', 'Viewed Product Demo', {
         section: 'product-demo',
-        variant: 'A',
-        campaign: 'launch-2026'
-      }, { threshold: 0.75 }); // Fire when 75% visible
-    });
+        variant: 'A'
+      }, { threshold: 0.75 });
+    }
   </script>
 </body>
 </html>

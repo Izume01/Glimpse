@@ -1,154 +1,264 @@
-import { track } from "./track.js";
+import { track, trackNow } from "./track.js";
+import { initNavigationTracking } from "./navigation.js";
+import { initPerformanceTracking } from "./performance.js";
+import { initEngagementTracking } from "./engagement.js";
+import { isNewSession, getSessionDuration } from "../core/session.js";
 
-// Auto Track Page View
-track('Page View' , {
-    "path" : location.pathname,
-    "referrer": document.referrer || undefined,
-})
+/**
+ * Auto-tracking module - initializes all automatic tracking
+ */
 
-// Auto Track Session Start
-track('Session Start');
+// ═══════════════════════════════════════════════════════════════════
+// SESSION TRACKING
+// ═══════════════════════════════════════════════════════════════════
 
-// Scroll Depth Tracking
-const scrollMilestones = [10, 25, 50, 75, 90, 100];
+if (isNewSession()) {
+    track('Session Start', {
+        referrer: document.referrer || undefined,
+        landingPage: location.pathname
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CORE TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
+initNavigationTracking();
+initPerformanceTracking();
+initEngagementTracking();
+
+// ═══════════════════════════════════════════════════════════════════
+// SCROLL DEPTH MILESTONES
+// ═══════════════════════════════════════════════════════════════════
+
+const scrollMilestones = [25, 50, 75, 90, 100];
 const reachedMilestones = new Set();
 
 function getScrollDepth() {
-    const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-    const windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight || 0;
-
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const windowHeight = window.innerHeight;
     const docHeight = Math.max(
-        document.body.scrollHeight, document.documentElement.scrollHeight,
-        document.body.offsetHeight, document.documentElement.offsetHeight,
-        document.body.clientHeight, document.documentElement.clientHeight
-    )
-
-    const scrollDepth = (scrollTop + windowHeight) / docHeight;
-
-    const scrollDepthPercent = Math.floor(scrollDepth * 100);
-
-    return Math.min(scrollDepthPercent, 100);
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+    );
+    return Math.min(Math.round(((scrollTop + windowHeight) / docHeight) * 100), 100);
 }
 
 window.addEventListener('scroll', () => {
-    const percentage = getScrollDepth();
+    const depth = getScrollDepth();
     for (const milestone of scrollMilestones) {
-        if (percentage >= milestone && !reachedMilestones.has(milestone)) {
+        if (depth >= milestone && !reachedMilestones.has(milestone)) {
             reachedMilestones.add(milestone);
-            track('Scroll Depth', { depth: milestone });
+            track('Scroll Milestone', { depth: milestone });
         }
     }
-})
+}, { passive: true });
 
-// Element Visibility Tracking (scroll to specific elements)
-const viewedElements = new Set();
+// ═══════════════════════════════════════════════════════════════════
+// ELEMENT VISIBILITY TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
+const viewedElements = new WeakSet();
 
 function setupElementVisibilityTracking() {
-    const elementsToTrack = document.querySelectorAll('[data-track-view]');
-    
-    if (elementsToTrack.length === 0) return;
+    const elements = document.querySelectorAll('[data-track-view]');
+    if (elements.length === 0) return;
 
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-            if (entry.isIntersecting) {
+            if (entry.isIntersecting && !viewedElements.has(entry.target)) {
+                viewedElements.add(entry.target);
                 const el = entry.target;
-                const elementId = el.id || el.getAttribute('data-track-view') || el.tagName;
-                
-                if (!viewedElements.has(el)) {
-                    viewedElements.add(el);
-                    track('Element Viewed', {
-                        elementId: elementId,
-                        elementName: el.getAttribute('data-track-name') || elementId,
-                        elementTag: el.tagName.toLowerCase()
-                    });
-                }
+                track('Element Viewed', {
+                    elementId: el.id || el.getAttribute('data-track-view'),
+                    elementName: el.getAttribute('data-track-name'),
+                    elementTag: el.tagName.toLowerCase()
+                });
             }
         });
-    }, {
-        threshold: 0.5 // Element is 50% visible
-    });
+    }, { threshold: 0.5 });
 
-    elementsToTrack.forEach(el => observer.observe(el));
+    elements.forEach(el => observer.observe(el));
 }
 
-// Run after DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', setupElementVisibilityTracking);
 } else {
     setupElementVisibilityTracking();
 }
 
-// Auto Track Visibility Change
+// ═══════════════════════════════════════════════════════════════════
+// VISIBILITY CHANGE
+// ═══════════════════════════════════════════════════════════════════
+
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-        track('Page Hidden');
-    } else if (document.visibilityState === 'visible') {
-        track('Page Visible');
-    }
+    track(document.visibilityState === 'hidden' ? 'Page Hidden' : 'Page Visible', {
+        sessionDuration: getSessionDuration()
+    });
 });
 
-// Auto Track Out bound Link Clicks
+// ═══════════════════════════════════════════════════════════════════
+// LINK TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
 document.addEventListener('click', (event) => {
-    const target = event.target;
-    if (target.tagName === 'A' && target.href) {
-        const linkHost = new URL(target.href).host;
-        if (linkHost !== window.location.host) {
-            track('Outbound Link Click', { url: target.href });
-        }
+    const link = event.target.closest('a[href]');
+    if (!link) return;
+    
+    const url = new URL(link.href, location.origin);
+    
+    // Outbound link
+    if (url.host !== location.host) {
+        track('Outbound Click', {
+            url: link.href,
+            text: link.innerText?.substring(0, 100),
+            destination: url.host
+        });
     }
-});
+    
+    // File download
+    const downloadExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'exe', 'dmg', 'apk'];
+    const ext = url.pathname.split('.').pop()?.toLowerCase();
+    if (ext && downloadExtensions.includes(ext)) {
+        track('File Download', {
+            url: link.href,
+            fileType: ext,
+            fileName: url.pathname.split('/').pop()
+        });
+    }
+}, { passive: true });
 
-// Auto Track Errors
+// ═══════════════════════════════════════════════════════════════════
+// FORM TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (form.tagName !== 'FORM') return;
+    
+    track('Form Submit', {
+        formId: form.id || undefined,
+        formName: form.name || undefined,
+        formAction: form.action || undefined,
+        formMethod: form.method?.toUpperCase() || 'GET'
+    });
+}, { passive: true });
+
+// Form field focus tracking (anonymized)
+document.addEventListener('focusin', (event) => {
+    const input = event.target;
+    if (!input.matches('input, textarea, select')) return;
+    
+    const form = input.closest('form');
+    track('Form Field Focus', {
+        fieldType: input.type || input.tagName.toLowerCase(),
+        fieldName: input.name || undefined,
+        formId: form?.id || undefined
+    });
+}, { passive: true });
+
+// ═══════════════════════════════════════════════════════════════════
+// BUTTON / CTA TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-track], [role="button"][data-track]');
+    if (!button) return;
+    
+    track('Button Click', {
+        buttonId: button.id || undefined,
+        buttonName: button.getAttribute('data-track-name') || button.innerText?.substring(0, 50),
+        buttonType: button.type || undefined
+    });
+}, { passive: true });
+
+// ═══════════════════════════════════════════════════════════════════
+// ERROR TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
 window.addEventListener('error', (event) => {
     track('JavaScript Error', {
         message: event.message,
         source: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        error: event.error ? event.error.stack : undefined
+        line: event.lineno,
+        column: event.colno,
+        stack: event.error?.stack?.substring(0, 500)
     });
 });
 
 window.addEventListener('unhandledrejection', (event) => {
-    track('Unhandled Promise Rejection', {
-        reason: event.reason ? (event.reason.stack || event.reason) : 'unknown'
+    track('Promise Rejection', {
+        reason: event.reason?.message || String(event.reason)?.substring(0, 200)
     });
 });
 
-// File Download Tracking
-document.addEventListener('click', (event) => {
-    const target = event.target;
-    if (target.tagName === 'A' && target.href) {
-        const url = new URL(target.href);
-        const fileExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z', 'exe', 'dmg'];
-        const path = url.pathname.toLowerCase();
-        for (const ext of fileExtensions) {
-            if (path.endsWith(`.${ext}`)) {
-                track('File Download', { url: target.href, fileType: ext });
-                break;
+// ═══════════════════════════════════════════════════════════════════
+// MEDIA TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
+function setupMediaTracking() {
+    const mediaElements = document.querySelectorAll('video[data-track], audio[data-track]');
+    
+    mediaElements.forEach(media => {
+        const mediaId = media.id || media.getAttribute('data-track') || media.src?.split('/').pop();
+        const mediaType = media.tagName.toLowerCase();
+        
+        media.addEventListener('play', () => {
+            track('Media Play', { mediaId, mediaType, currentTime: Math.round(media.currentTime) });
+        });
+        
+        media.addEventListener('pause', () => {
+            track('Media Pause', { mediaId, mediaType, currentTime: Math.round(media.currentTime) });
+        });
+        
+        media.addEventListener('ended', () => {
+            track('Media Complete', { mediaId, mediaType, duration: Math.round(media.duration) });
+        });
+        
+        // Track progress milestones
+        const progressMilestones = [25, 50, 75];
+        const reachedProgress = new Set();
+        
+        media.addEventListener('timeupdate', () => {
+            const progress = Math.round((media.currentTime / media.duration) * 100);
+            for (const milestone of progressMilestones) {
+                if (progress >= milestone && !reachedProgress.has(milestone)) {
+                    reachedProgress.add(milestone);
+                    track('Media Progress', { mediaId, mediaType, progress: milestone });
+                }
             }
-        }
-    }
-});
-
-// Auto Track Session End on unload
-window.addEventListener('beforeunload', () => {
-    track('Session End');
-});
-
-// Form Interaction Tracking
-document.addEventListener('submit', (event) => {
-    const target = event.target;
-    if (target.tagName === 'FORM') {
-        track('Form Submitted', { formAction: target.action || undefined });
-    }
-});
-
-// Button / CTA Click Tracking
-document.querySelectorAll('button[data-track]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const btnName = btn.getAttribute('data-track-name') || btn.innerText || 'Unnamed Button';
-        track('Button Click', { buttonName: btnName });
+        });
     });
-})
+}
 
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMediaTracking);
+} else {
+    setupMediaTracking();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// COPY TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
+document.addEventListener('copy', () => {
+    const selection = document.getSelection();
+    const text = selection?.toString()?.substring(0, 100);
+    
+    if (text && text.length > 0) {
+        track('Text Copied', {
+            textLength: selection?.toString()?.length,
+            textPreview: text
+        });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// SESSION END
+// ═══════════════════════════════════════════════════════════════════
+
+window.addEventListener('pagehide', () => {
+    trackNow('Session End', {
+        duration: getSessionDuration()
+    });
+});
