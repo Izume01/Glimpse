@@ -25,12 +25,10 @@ function getEndpoint() {
 async function send(events) {
     const endpoint = getEndpoint();
     
-    for (const event of events) {
+    await Promise.allSettled(events.map(event => {
         const payload = JSON.stringify(event);
-        let attempts = 0;
         
-        const attemptSend = async () => {
-            attempts++;
+        const attemptSend = async (attempts = 0) => {
             try {
                 const response = await fetch(endpoint, {
                     method: 'POST',
@@ -41,20 +39,22 @@ async function send(events) {
                     mode: 'cors'
                 });
                 
-                if (!response.ok && attempts < MAX_RETRIES) {
-                    setTimeout(attemptSend, RETRY_DELAY * attempts);
+                if (!response.ok && attempts < MAX_RETRIES - 1) {
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (attempts + 1)));
+                    return attemptSend(attempts + 1);
                 }
             } catch (err) {
-                if (attempts < MAX_RETRIES) {
-                    setTimeout(attemptSend, RETRY_DELAY * attempts);
+                if (attempts < MAX_RETRIES - 1) {
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (attempts + 1)));
+                    return attemptSend(attempts + 1);
                 } else {
                     console.error('GlimpseTracker: Failed to send event', err);
                 }
             }
         };
         
-        attemptSend();
-    }
+        return attemptSend();
+    }));
 }
 
 /**

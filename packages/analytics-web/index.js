@@ -199,13 +199,17 @@ export async function initGlimpse(options = {}) {
 
     // Wait for SDK to be ready if not yet initialized
     if (!window.GlimpseTracker) {
-        await new Promise(resolve => {
+        await new Promise((resolve, reject) => {
             if (window.GlimpseTracker) {
                 resolve();
             } else {
-                window.addEventListener('glimpse:ready', resolve, { once: true });
-                // Timeout fallback
-                setTimeout(resolve, 1000);
+                const timeout = setTimeout(() => {
+                    reject(new Error('GlimpseTracker initialization timeout'));
+                }, 5000);
+                window.addEventListener('glimpse:ready', () => {
+                    clearTimeout(timeout);
+                    resolve();
+                }, { once: true });
             }
         });
     }

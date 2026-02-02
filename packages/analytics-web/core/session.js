@@ -31,10 +31,14 @@ export function getSessionId() {
 }
 
 /**
- * Check if this is a new session (first page view)
+ * Check if this is a new session (first page view or after timeout)
  */
 export function isNewSession() {
-    return !sessionStorage.getItem(SESSION_ID_KEY);
+    const sid = sessionStorage.getItem(SESSION_ID_KEY);
+    if (!sid) return true;
+    
+    const lastActive = parseInt(sessionStorage.getItem(SESSION_LAST_ACTIVE_KEY) || '0', 10);
+    return lastActive && (Date.now() - lastActive > SESSION_TIMEOUT);
 }
 
 /**
