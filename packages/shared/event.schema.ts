@@ -20,24 +20,33 @@ export interface AnalyticsEvent {
     referrer?: string;
     path?: string;
     title?: string;
+    search?: string;
+    hash?: string;
     previousPath?: string;
-
-    viewport?: string;
-    screen?: {
-      width?: number;
-      height?: number;
-      colorDepth?: number;
-    };
+    viewport?: string | { width?: number; height?: number };
+    width?: number;
+    height?: number;
+    colorDepth?: number;
+    pixelRatio?: number;
 
     userAgent?: string;
     timezone?: string;
     language?: string;
 
+    languages?: string[];
+    cookiesEnabled?: boolean;
     connection?: {
       effectiveType?: string;
       saveData?: boolean;
+      downlink?: number;
+      rtt?: number;
     };
 
+    touchPoints?: number;
+    platform?: {
+      mobile?: boolean;
+      platform?: string;
+    };
     [key: string]: unknown;
   };
 }

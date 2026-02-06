@@ -78,3 +78,6 @@ services:
     ports:
       - "6378:6379"
 
+
+volumes:
+  pg_data:

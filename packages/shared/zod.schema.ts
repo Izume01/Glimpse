@@ -16,6 +16,7 @@ export const EventSchema = z.object({
             email: email().optional(),
             name: z.string().optional()
         })
+        .catchall(z.unknown())
         .optional(),
 
     properties: z
@@ -27,26 +28,49 @@ export const EventSchema = z.object({
             url: z.string().optional(),
             referrer: z.string().optional(),
             path: z.string().optional(),
+            search: z.string().optional(),
+            hash: z.string().optional(),
             title: z.string().optional(),
             previousPath: z.string().optional(),
 
-            viewport: z.string().optional(),
+            viewport: z
+                .union([
+                    z.string(),
+                    z.object({
+                        width: z.number().optional(),
+                        height: z.number().optional()
+                    })
+                ])
+                .optional(),
             screen: z
                 .object({
                     width: z.number().optional(),
                     height: z.number().optional(),
-                    colorDepth: z.number().optional()
+                    colorDepth: z.number().optional(),
+                    pixelRatio: z.number().optional()
                 })
                 .optional(),
 
             userAgent: z.string().optional(),
             timezone: z.string().optional(),
             language: z.string().optional(),
+            languages: z.array(z.string()).optional(),
+            cookiesEnabled: z.boolean().optional(),
 
             connection: z
                 .object({
                     effectiveType: z.string().optional(),
+                    downlink: z.number().optional(),
+                    rtt: z.number().optional(),
                     saveData: z.boolean().optional()
+                })
+                .optional(),
+
+            touchPoints: z.number().optional(),
+            platform: z
+                .object({
+                    mobile: z.boolean().optional(),
+                    platform: z.string().optional()
                 })
                 .optional()
         })
