@@ -1,0 +1,33 @@
+{
+    "name": "@selz979/analytics-web",
+    "version": "0.1.1",
+    "type": "module",
+    "main": "./dist/index.cjs.js",
+    "module": "./dist/index.esm.js",
+    "exports": {
+        ".": {
+            "import": "./dist/index.esm.js",
+            "require": "./dist/index.cjs.js"
+        },
+        "./frameworks/*": "./frameworks/*.js",
+        "./events/*": "./events/*.js",
+        "./core/*": "./core/*.js",
+        "./transport/*": "./transport/*.js"
+    },
+    "unpkg": "./dist/glimpse.umd.js",
+    "jsdelivr": "./dist/glimpse.umd.js",
+    "files": [
+        "dist",
+        "core",
+        "events",
+        "frameworks",
+        "transport",
+        "index.js",
+        "README.md"
+    ],
+    "scripts": {
+        "build": "bun run build.mjs",
+        "clean": "rm -rf dist"
+    },
+    "license": "UNLICENSED"
+}
