@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "npm:publish",
+			"command": "npm",
+			"args": [
+				"publish"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/packages/analytics-web"
+			},
+			"presentation": {
+				"reveal": "silent"
+			}
+		}
+	]
+}

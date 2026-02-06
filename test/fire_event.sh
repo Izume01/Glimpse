@@ -19,8 +19,8 @@ curl -s -X POST $ENDPOINT \
     "sessionId": "sess_abcd1234",
     "userId": "user_12345",
     "traits": {
-      "email": "shrey@example.com",
-      "name": "Shrey"
+      "email": "sy@example.com",
+      "name": "Sy"
     },
     "properties": {
       "pageType": "landing",
