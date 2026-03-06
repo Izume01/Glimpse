@@ -5,7 +5,7 @@ import type { GeoResult } from "./lib/geolookupIp";
 import { redis } from "@glimpse/db/redis";
 import type { AnalyticsEvent } from "@glimpse/shared/event.schema"
 import { prisma } from "@glimpse/db/client";
-import crypto from 'bun'
+import * as nodeCrypto from 'crypto';
 
 interface BufferData {
     event: AnalyticsEvent;
@@ -81,12 +81,22 @@ const eventWorker = new Worker(
             case "ingest-event":
                 const eventData = job.data;
 
-                if (!eventData.sessionId) {
-                    eventData.sessionId = `sess_${crypto.randomUUIDv7()}`;
+                let sessionId = eventData.sessionId;
+                let anonymousId = eventData.anonymousId;
+
+                if (!anonymousId) {
+                    const ip = (eventData.meta as any)?.ip || "unknown";
+                    const ua = (eventData.meta as any)?.userAgent || "unknown";
+                    const hash = nodeCrypto.createHash('sha256').update(`${ip}-${ua}`).digest('hex');
+                    anonymousId = `anon_${hash.substring(0, 16)}`;
+                    eventData.anonymousId = anonymousId;
                 }
 
-                if (!eventData.anonymousId) {
-                    eventData.anonymousId = `anon_${crypto.randomUUIDv7()}`;
+                if (!sessionId) {
+                    const hour = new Date(eventData.timestamp ?? Date.now()).toISOString().split('T')[0] + '-' + new Date(eventData.timestamp ?? Date.now()).getHours();
+                    const hash = nodeCrypto.createHash('sha256').update(`${anonymousId}-${hour}`).digest('hex');
+                    sessionId = `sess_${hash.substring(0, 16)}`;
+                    eventData.sessionId = sessionId;
                 }
 
                 let geoData: GeoResult = null;
@@ -115,13 +125,25 @@ const eventWorker = new Worker(
                     lastEventTimestamp: String(eventData.timestamp ?? Date.now()),
                 });
 
-                pipeline.expire(sessionKey, 300);
+                pipeline.hincrby(sessionKey, "eventCount", 1);
+                
+                pipeline.expire(sessionKey, 2000);
 
                 const activeSessionsKey = `active_sessions:${eventData.projectId}`;
                 pipeline.sadd(activeSessionsKey, eventData.sessionId);
-                pipeline.expire(activeSessionsKey, 300);
+                pipeline.expire(activeSessionsKey, 2000);
 
-                await pipeline.exec();
+                const results = await pipeline.exec();
+                
+                // hincrby is the 2nd command (index 1)
+                const eventCountAfter = results ? results[1][1] as number : 2;
+                
+                let bounceDelta = 0;
+                if (eventCountAfter === 1) {
+                    bounceDelta = 1; // First event: assume bounce
+                } else if (eventCountAfter === 2) {
+                    bounceDelta = -1; // Second event: no longer a bounce
+                }
 
                 eventBuffer.push({
                     event: eventData,
@@ -130,7 +152,8 @@ const eventWorker = new Worker(
 
                 await analyticsQueue.add("analytics-job", {
                     eventData,
-                    geoData
+                    geoData,
+                    bounceDelta
                 });
 
 

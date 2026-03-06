@@ -68,46 +68,121 @@ model AnalyticsSession {
 }
 
 
-model DailyEventAggregate {
+model HourlyEventAggregate {
   projectId String
-  date      DateTime
+  timestamp DateTime
   eventName String
 
   count     Int
   users     Int
   sessions  Int
 
-  @@map("daily_event_aggregates")
-  @@id([projectId, date, eventName])
+  @@map("hourly_event_aggregates")
+  @@id([projectId, timestamp, eventName])
 }
 
 
 
-model DailyPageAnalytics {
+model HourlyPageAnalytics {
   projectId String
-  date      DateTime
+  timestamp DateTime
   pagePath  String
 
   views        Int
-  uniqueUsers Int
+  uniqueUsers  Int
   sessions     Int
   bounces      Int
+  entrances    Int @default(0)
+  exits        Int @default(0)
+  duration     Float @default(0)
 
-  @@map("daily_page_analytics")
-  @@id([projectId, date, pagePath])
+  @@map("hourly_page_analytics")
+  @@id([projectId, timestamp, pagePath])
+}
+
+model HourlyReferrerAnalytics {
+  projectId   String
+  timestamp   DateTime
+  referrer    String
+
+  views       Int
+  uniqueUsers Int
+  sessions    Int
+
+  @@map("hourly_referrer_analytics")
+  @@id([projectId, timestamp, referrer])
+}
+
+model HourlyDeviceAnalytics {
+  projectId   String
+  timestamp   DateTime
+  deviceType  String
+  browser     String
+  os          String
+
+  uniqueUsers Int
+  sessions    Int
+
+  @@map("hourly_device_analytics")
+  @@id([projectId, timestamp, deviceType, browser, os])
+}
+
+model HourlyCountryAnalytics {
+  projectId   String
+  timestamp   DateTime
+  country     String
+  region      String
+  city        String
+
+  uniqueUsers Int
+  sessions    Int
+
+  @@map("hourly_country_analytics")
+  @@id([projectId, timestamp, country, region, city])
+}
+
+model HourlyCampaignAnalytics {
+  projectId   String
+  timestamp   DateTime
+  utmSource   String
+  utmMedium   String
+  utmCampaign String
+  utmTerm     String
+  utmContent  String
+
+  views       Int
+  uniqueUsers Int
+  sessions    Int
+
+  @@map("hourly_campaign_analytics")
+  @@id([projectId, timestamp, utmSource, utmMedium, utmCampaign, utmTerm, utmContent])
+}
+
+model HourlySiteMetrics {
+  projectId     String
+  timestamp     DateTime
+
+  visitors      Int
+  views         Int
+  sessions      Int
+  bounces       Int
+  totalDuration Float
+
+  @@map("hourly_site_metrics")
+  @@id([projectId, timestamp])
 }
 
 
-model DailyUserAnalytics {
+model HourlyUserAnalytics {
   projectId   String
-  date        DateTime
+  timestamp   DateTime
   anonymousId String
 
   sessions    Int
   isNew       Boolean
 
-  @@map("daily_user_analytics")
-  @@id([projectId, date, anonymousId])
+  @@map("hourly_user_analytics")
+  @@id([projectId, timestamp, anonymousId])
 }
 
 
